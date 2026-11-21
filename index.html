@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#000000">
+    <title>DICKFILM // BLE REMOTE</title>
+    <style>
+        :root {
+            --bg: #000000;
+            --card-bg: #050505;
+            --text-main: #ffffff;
+            --text-muted: #666666;
+            --border: #222222;
+            --primary: #ffffff;
+            --danger: #ff0033;
+            --success: #00ff66;
+            --warning: #ffaa00;
+            --font: -apple-system, BlinkMacSystemFont, Menlo, Monaco, Consolas, 'Courier New', monospace;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            font-family: var(--font);
+            margin: 0;
+            padding: 12px;
+            text-transform: uppercase;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            padding: 16px;
+            margin-bottom: 14px;
+            position: relative;
+            background-image: radial-gradient(circle, #1a1a1a 1px, transparent 1px);
+            background-size: 14px 14px;
+        }
+
+        h2 {
+            margin-top: 0;
+            margin-bottom: 16px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            letter-spacing: 2px;
+        }
+
+        .status-dot { font-size: 0.8rem; font-weight: normal; letter-spacing: 1px; }
+        .status-dot.online { color: var(--success); }
+        .status-dot.connecting { color: var(--warning); animation: pulse 1s infinite alternate; }
+        .status-dot.offline { color: var(--danger); }
+        
+        @keyframes pulse { from { opacity: 0.4; } to { opacity: 1; } }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .val-group {
+            display: flex;
+            flex-direction: column;
+            background: #000000;
+            padding: 8px 10px;
+            border: 1px dashed var(--border);
+        }
+
+        .val-label { font-size: 0.65rem; color: var(--text-muted); letter-spacing: 1.5px; margin-bottom: 4px; }
+        .val-text { font-size: 1.55rem; font-weight: bold; }
+        .val-unit { font-size: 0.75rem; color: var(--text-muted); margin-left: 4px; }
+
+        .flex-row { display: flex; gap: 8px; }
+
+        .btn-bezug {
+            flex: 2;
+            background-color: transparent;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+            padding: 16px;
+            font-size: 1.2rem;
+            font-family: var(--font);
+            font-weight: bold;
+            letter-spacing: 3px;
+            cursor: pointer;
+            transition: all 0.1s;
+        }
+        .btn-bezug:active { transform: scale(0.98); }
+        .btn-bezug.stop { background-color: var(--danger); color: #000; border-color: var(--danger); }
+
+        .btn-action {
+            flex: 1;
+            background-color: transparent;
+            color: var(--text-main);
+            border: 1px dashed var(--border);
+            font-family: var(--font);
+            font-size: 0.85rem;
+            font-weight: bold;
+            padding: 12px;
+            cursor: pointer;
+            letter-spacing: 1.5px;
+            transition: all 0.15s;
+        }
+        .btn-action:hover, .btn-action:active { border-color: var(--text-main); }
+        .btn-action.active-mode {
+            border: 1px solid var(--primary);
+            background-color: var(--primary);
+            color: #000;
+        }
+
+        .btn-ble {
+            background: transparent;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+            padding: 8px 14px;
+            font-family: var(--font);
+            font-size: 0.75rem;
+            font-weight: bold;
+            cursor: pointer;
+            letter-spacing: 1.5px;
+        }
+        .btn-ble:hover { background: #1a1a1a; }
+        .btn-ble.disconnect { border-color: var(--danger); color: var(--danger); }
+
+        .control-group {
+            display: flex;
+            align-items: flex-end;
+            gap: 8px;
+            margin-bottom: 12px;
+            background: #000;
+        }
+        .input-wrapper { flex-grow: 1; }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            background: transparent;
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            font-family: var(--font);
+            font-size: 1.1rem;
+            outline: none;
+        }
+        input[type="number"]:focus { border-color: var(--primary); }
+
+        .btn-set {
+            background-color: transparent;
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            padding: 10px 16px;
+            font-family: var(--font);
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .btn-set:hover, .btn-set:active { border-color: var(--primary); background: #111; }
+
+        canvas {
+            width: 100%;
+            height: 220px;
+            display: block;
+            margin-top: 6px;
+            background: #000;
+            border: 1px solid var(--border);
+        }
+
+        .chart-legend {
+            display: flex;
+            gap: 12px;
+            font-size: 0.65rem;
+            letter-spacing: 1px;
+            justify-content: flex-end;
+            background: #000;
+            padding: 4px 6px;
+        }
+        .legend-item { display: flex; align-items: center; gap: 4px; }
+        .legend-color { width: 8px; height: 8px; }
+
+        /* Modal History View */
+        #modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg);
+            z-index: 1000;
+            overflow-y: auto;
+            padding: 16px;
+        }
+        .hist-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+        .btn-hist-item {
+            background: transparent;
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            padding: 12px;
+            font-family: var(--font);
+            text-align: left;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+        .btn-hist-item:hover { border-color: var(--text-main); }
+        .btn-close {
+            background: var(--danger);
+            color: #000;
+            border: none;
+            padding: 12px;
+            font-family: var(--font);
+            font-weight: bold;
+            width: 100%;
+            cursor: pointer;
+            margin-bottom: 14px;
+            letter-spacing: 2px;
+        }
+
+        /* Banner for iOS / Chrome note */
+        #ble-banner {
+            display: none;
+            background: #111;
+            border: 1px solid var(--warning);
+            padding: 12px;
+            margin-bottom: 14px;
+            font-size: 0.75rem;
+            color: var(--warning);
+            line-height: 1.4;
+        }
+
+        /* Collapsible Tuning Accordion */
+        .accordion-header {
+            cursor: pointer;
+            user-select: none;
+        }
+        .accordion-header:after {
+            content: '+';
+            float: right;
+            font-weight: bold;
+        }
+        .accordion-header.open:after {
+            content: '-';
+        }
+        .accordion-content {
+            display: none;
+            padding-top: 10px;
+        }
+        .accordion-content.open {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="main-view">
+
+        <!-- Browser Compatibility Alert Banner -->
+        <div id="ble-banner">
+            ⚠️ <strong>Web Bluetooth nicht erkannt:</strong> Bitte nutze <strong>Google Chrome</strong> (auf PC/Android) oder die kostenlose App <strong>Bluefy – Web BLE Browser</strong> (auf Apple iPhone/iPad).
+        </div>
+
+        <!-- BLE CONNECTION & STATUS -->
+        <div class="card">
+            <h2>
+                <span>STATUS <span id="conn-status" class="status-dot offline">SYS.OFFLINE</span></span>
+                <div>
+                    <button id="btn-connect" class="btn-ble" onclick="handleConnectClick()">+ KOPPELN</button>
+                </div>
+            </h2>
+            
+            <div class="grid">
+                <div class="val-group">
+                    <span class="val-label">HEIZER TEMP</span>
+                    <div class="val-text"><span id="v-th">--.-</span><span class="val-unit">°C</span></div>
+                </div>
+                <div class="val-group">
+                    <span class="val-label">BRÜHGRUPPE</span>
+                    <div class="val-text"><span id="v-tb">--.-</span><span class="val-unit">°C</span></div>
+                </div>
+                <div class="val-group">
+                    <span class="val-label">ZIEL TEMP</span>
+                    <div class="val-text"><span id="v-tt">--.-</span><span class="val-unit">°C</span></div>
+                </div>
+                <div class="val-group">
+                    <span class="val-label" id="lbl-ziel">ZIEL DRUCK</span>
+                    <div class="val-text"><span id="v-tpb">8.0</span><span class="val-unit" id="unit-ziel">BAR</span></div>
+                </div>
+                <div class="val-group">
+                    <span class="val-label">FLOW RATE</span>
+                    <div class="val-text"><span id="v-f">--.-</span><span class="val-unit">ML/S</span></div>
+                </div>
+                <div class="val-group">
+                    <span class="val-label">DRUCK</span>
+                    <div class="val-text"><span id="v-pb">--.-</span><span class="val-unit">BAR</span></div>
+                </div>
+                <div class="val-group">
+                    <span class="val-label">VOLUMEN</span>
+                    <div class="val-text"><span id="v-vol">--.-</span><span class="val-unit">ML</span></div>
+                </div>
+                <div class="val-group">
+                    <span class="val-label">ZEIT</span>
+                    <div class="val-text"><span id="v-time">--.-</span><span class="val-unit">S</span></div>
+                </div>
+                <div class="val-group">
+                    <span class="val-label">LEISTUNG</span>
+                    <div class="val-text"><span id="v-watt">0</span><span class="val-unit">W</span></div>
+                </div>
+            </div>
+
+            <div class="flex-row" style="margin-bottom: 8px;">
+                <button id="btn-pi" class="btn-action" onclick="togglePI()">PRE-INF: ON</button>
+                <button class="btn-action" onclick="openHistory()">HISTORIE (<span id="hist-count">0</span>)</button>
+            </div>
+            <div class="flex-row">
+                <button id="btn-bezug" class="btn-bezug" onclick="togglePump()">BEZUG START</button>
+            </div>
+        </div>
+
+        <!-- REALTIME CHARTS -->
+        <div class="card">
+            <h2>TELEMETRIE // ECHTZEIT</h2>
+            
+            <div class="chart-legend">
+                <div class="legend-item"><div class="legend-color" style="background:#ffffff"></div>DRUCK (BAR)</div>
+                <div class="legend-item"><div class="legend-color" style="background:#ff0033"></div>FLOW (ML/S)</div>
+                <div class="legend-item"><div class="legend-color" style="background:#555555"></div>ZIEL</div>
+            </div>
+            <canvas id="c-bezug"></canvas>
+
+            <div class="chart-legend" style="margin-top:18px;">
+                <div class="legend-item"><div class="legend-color" style="background:#ffffff"></div>DICKFILM (°C)</div>
+                <div class="legend-item"><div class="legend-color" style="background:#ff0033"></div>BRÜHGRUPPE (°C)</div>
+                <div class="legend-item"><div class="legend-color" style="background:#555555"></div>ZIEL</div>
+            </div>
+            <canvas id="c-temp"></canvas>
+        </div>
+
+        <!-- STEUERUNG -->
+        <div class="card">
+            <h2>STEUERUNG // PARAMETER</h2>
+            <div class="flex-row" style="margin-bottom: 14px;">
+                <button id="btn-mode-p" class="btn-action active-mode" onclick="setMode(0)">MODUS: DRUCK</button>
+                <button id="btn-mode-f" class="btn-action" onclick="setMode(1)">MODUS: FLOW</button>
+            </div>
+
+            <div class="control-group">
+                <div class="input-wrapper">
+                    <span class="val-label" style="display:block; margin-bottom:4px;">ZIEL-TEMPERATUR (°C)</span>
+                    <input type="number" id="inp-temp" step="0.5" value="93.0">
+                </div>
+                <button class="btn-set" onclick="sendParamCmd('T', document.getElementById('inp-temp').value)">SET</button>
+            </div>
+
+            <div class="control-group">
+                <div class="input-wrapper">
+                    <span class="val-label" style="display:block; margin-bottom:4px;">ZIEL-DRUCK (BAR)</span>
+                    <input type="number" id="inp-druck" step="0.5" value="8.0">
+                </div>
+                <button class="btn-set" onclick="sendParamCmd('D', document.getElementById('inp-druck').value)">SET</button>
+            </div>
+
+            <div class="control-group">
+                <div class="input-wrapper">
+                    <span class="val-label" style="display:block; margin-bottom:4px;">ZIEL-FLOW (ML/S)</span>
+                    <input type="number" id="inp-flow" step="0.1" value="1.8">
+                </div>
+                <button class="btn-set" onclick="sendParamCmd('F', document.getElementById('inp-flow').value)">SET</button>
+            </div>
+
+            <div class="control-group">
+                <div class="input-wrapper">
+                    <span class="val-label" style="display:block; margin-bottom:4px;">PRE-INFUSION FLOW (ML/S)</span>
+                    <input type="number" id="inp-pif" step="0.1" value="2.0">
+                </div>
+                <button class="btn-set" onclick="sendRawCmd('piF ' + document.getElementById('inp-pif').value)">SET</button>
+            </div>
+        </div>
+
+        <!-- ERWEITERTES TUNING (KAFFEE & DAMPF PID) -->
+        <div class="card">
+            <h2 class="accordion-header" onclick="toggleAccordion('tuning-content', this)">
+                FEINABSTIMMUNG // TUNING
+            </h2>
+            <div id="tuning-content" class="accordion-content">
+                <span class="val-label" style="display:block; margin-bottom:6px;">KAFFEE HEIZER PID (WATT)</span>
+                <div class="grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 12px;">
+                    <div class="val-group" style="padding: 4px;">
+                        <span class="val-label">Kp</span>
+                        <input type="number" id="pid-p" value="28.0" step="0.5" style="padding:4px; text-align:center;">
+                    </div>
+                    <div class="val-group" style="padding: 4px;">
+                        <span class="val-label">Ki</span>
+                        <input type="number" id="pid-i" value="2.5" step="0.1" style="padding:4px; text-align:center;">
+                    </div>
+                    <div class="val-group" style="padding: 4px;">
+                        <span class="val-label">Kd</span>
+                        <input type="number" id="pid-d" value="30.0" step="1.0" style="padding:4px; text-align:center;">
+                    </div>
+                    <div class="val-group" style="padding: 4px;">
+                        <span class="val-label">FF Eff</span>
+                        <input type="number" id="pid-f" value="1.10" step="0.05" style="padding:4px; text-align:center;">
+                    </div>
+                </div>
+                <button class="btn-action" style="width: 100%; margin-bottom: 16px;" onclick="saveCoffeePID()">SPEICHERN KAFFEE-PID</button>
+
+                <span class="val-label" style="display:block; margin-bottom:6px;">DAMPF-PARAMETER (FTH)</span>
+                <div class="grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 12px;">
+                    <div class="val-group" style="padding: 4px;">
+                        <span class="val-label">DAMPF ZIEL (°C)</span>
+                        <input type="number" id="tune-sTt" value="135.0" step="1.0" style="padding:4px; text-align:center;">
+                    </div>
+                    <div class="val-group" style="padding: 4px;">
+                        <span class="val-label">DAMPF Kp</span>
+                        <input type="number" id="tune-sKp" value="10.0" step="0.5" style="padding:4px; text-align:center;">
+                    </div>
+                    <div class="val-group" style="padding: 4px;">
+                        <span class="val-label">DAMPF Kd</span>
+                        <input type="number" id="tune-sKd" value="0.0" step="0.5" style="padding:4px; text-align:center;">
+                    </div>
+                    <div class="val-group" style="padding: 4px;">
+                        <span class="val-label">MIN POWER (%)</span>
+                        <input type="number" id="tune-sMinP" value="75.0" step="1.0" style="padding:4px; text-align:center;">
+                    </div>
+                    <div class="val-group" style="padding: 4px;">
+                        <span class="val-label">PUMPE PWR (%)</span>
+                        <input type="number" id="tune-sPp" value="40" step="1" style="padding:4px; text-align:center;">
+                    </div>
+                    <div class="val-group" style="padding: 4px;">
+                        <span class="val-label">PAUSE AUS (MS)</span>
+                        <input type="number" id="tune-sPoff" value="260" step="10" style="padding:4px; text-align:center;">
+                    </div>
+                </div>
+                <button class="btn-action" style="width: 100%;" onclick="saveSteamParams()">SPEICHERN DAMPF-PARAMETER</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- MODAL HISTORY VIEW -->
+    <div id="modal">
+        <button class="btn-close" onclick="closeHistory()">SCHLIESSEN</button>
+        <div class="flex-row" style="margin-bottom: 12px;">
+            <button class="btn-action" onclick="downloadCurrentShotJSON()">DOWNLOAD (.JSONL)</button>
+            <button class="btn-action" style="color:var(--danger); border-color:var(--danger);" onclick="clearAllShots()">ALLE LÖSCHEN</button>
+        </div>
+        
+        <h2>GESPEICHERTE BEZÜGE</h2>
+        <div class="hist-list" id="hist-list">
+            <!-- Buttons injected here -->
+        </div>
+
+        <div id="hist-chart-container" style="display:none; margin-top:16px;">
+            <div class="grid" style="margin-bottom:12px;">
+                <div class="val-group">
+                    <span class="val-label">DAUER</span>
+                    <div class="val-text"><span id="h-dur">--</span><span class="val-unit">S</span></div>
+                </div>
+                <div class="val-group">
+                    <span class="val-label">VOLUMEN</span>
+                    <div class="val-text"><span id="h-vol">--.-</span><span class="val-unit">ML</span></div>
+                </div>
+                <div class="val-group">
+                    <span class="val-label">MITTL. DRUCK</span>
+                    <div class="val-text"><span id="h-pb">--.-</span><span class="val-unit">BAR</span></div>
+                </div>
+                <div class="val-group">
+                    <span class="val-label">BRÜH TEMP</span>
+                    <div class="val-text"><span id="h-tb">--.-</span><span class="val-unit">°C</span></div>
+                </div>
+            </div>
+
+            <div class="chart-legend">
+                <div class="legend-item"><div class="legend-color" style="background:#ffffff"></div>DRUCK</div>
+                <div class="legend-item"><div class="legend-color" style="background:#ff0033"></div>FLOW</div>
+                <div class="legend-item"><div class="legend-color" style="background:#555555"></div>ZIEL</div>
+            </div>
+            <canvas id="c-hist-bezug"></canvas>
+
+            <div class="chart-legend" style="margin-top:16px;">
+                <div class="legend-item"><div class="legend-color" style="background:#ffffff"></div>HEIZER</div>
+                <div class="legend-item"><div class="legend-color" style="background:#ff0033"></div>BRÜHGRUPPE</div>
+                <div class="legend-item"><div class="legend-color" style="background:#555555"></div>ZIEL</div>
+            </div>
+            <canvas id="c-hist-temp"></canvas>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT: BLE ENGINE + DASHBOARD CONTROLLER -->
+    <script>
+        // Nordic UART Service (NUS) UUIDs (Standard)
+        const NUS_SERVICE_UUID = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
+        const NUS_CHAR_RX_UUID = '6e400002-b5a3-f393-e0a9-e50e24dcca9e'; // Client -> ESP32 Write
+        const NUS_CHAR_TX_UUID = '6e400003-b5a3-f393-e0a9-e50e24dcca9e'; // ESP32 -> Client Notify
+
+        let bleDevice = null;
+        let bleServer = null;
+        let rxChar = null;
+        let txChar = null;
+        let isConnected = false;
+        let isConnecting = false;
+        let bleRxBuffer = "";
+
+        // UI & Telemetry State
+        let pumpActive = false;
+        let piActive = true;
+        let currentMode = 0; // 0 = Pressure, 1 = Flow
+        let history = [];
+        const maxPts = 150;
+
+        let totalVolume = 0;
+        let totalTime = 0;
+        let lastTime = Date.now();
+        let wasPumping = false;
+
+        // Shot Recording
+        let activeShotBuffer = [];
+        let savedShots = [];
+        let selectedShotIndex = -1;
+
+        // Load saved shots from browser localStorage
+        try {
+            const stored = localStorage.getItem('dickfilm_shots');
+            if (stored) savedShots = JSON.parse(stored);
+        } catch(e) {}
+        updateHistoryCount();
+
+        // Check Web Bluetooth support
+        if (!navigator.bluetooth) {
+            document.getElementById('ble-banner').style.display = 'block';
+        }
+
+        // =====================================================================
+        // BLE CONNECTION ENGINE (Auto-Connect & Bonding)
+        // =====================================================================
+        async function handleConnectClick() {
+            if (isConnected) {
+                disconnectBLE();
+            } else {
+                requestNewDevice();
+            }
+        }
+
+        async function requestNewDevice() {
+            if (!navigator.bluetooth) {
+                alert("Web Bluetooth wird von diesem Browser nicht unterstützt.\n\nBitte nutze Google Chrome (PC/Android) oder die Bluefy-App (iOS).");
+                return;
+            }
+
+            try {
+                setConnState('connecting', 'KOPPELN...');
+                const device = await navigator.bluetooth.requestDevice({
+                    filters: [{ name: 'Dickfilm-Espresso' }],
+                    optionalServices: [NUS_SERVICE_UUID]
+                });
+
+                connectToDevice(device);
+            } catch (err) {
+                console.warn("[BLE] Request cancelled or failed:", err);
+                setConnState('offline', 'SYS.OFFLINE');
+            }
+        }
+
+        async function connectToDevice(device) {
+            try {
+                bleDevice = device;
+                device.addEventListener('gattserverdisconnected', onDisconnected);
+
+                setConnState('connecting', 'VERBINDE...');
+                console.log("[BLE] Connecting to GATT Server...");
+                bleServer = await device.gatt.connect();
+
+                console.log("[BLE] Getting Nordic UART Service...");
+                const service = await bleServer.getPrimaryService(NUS_SERVICE_UUID);
+
+                console.log("[BLE] Getting Characteristics...");
+                rxChar = await service.getCharacteristic(NUS_CHAR_RX_UUID);
+                txChar = await service.getCharacteristic(NUS_CHAR_TX_UUID);
+
+                console.log("[BLE] Starting Notifications...");
+                await txChar.startNotifications();
+                txChar.addEventListener('characteristicvaluechanged', onBleDataReceived);
+
+                isConnected = true;
+                setConnState('online', 'SYS.ONLINE (BLE)');
+                document.getElementById('btn-connect').innerText = 'TRENNEN';
+                document.getElementById('btn-connect').classList.add('disconnect');
+                console.log("[BLE] Successfully connected!");
+
+            } catch (err) {
+                console.error("[BLE] Connection error:", err);
+                setConnState('offline', 'SYS.OFFLINE');
+                isConnected = false;
+            }
+        }
+
+        function disconnectBLE() {
+            if (bleDevice && bleDevice.gatt.connected) {
+                bleDevice.gatt.disconnect();
+            }
+            onDisconnected();
+        }
+
+        function onDisconnected() {
+            isConnected = false;
+            rxChar = null;
+            txChar = null;
+            setConnState('offline', 'SYS.OFFLINE');
+            document.getElementById('btn-connect').innerText = '+ KOPPELN';
+            document.getElementById('btn-connect').classList.remove('disconnect');
+            console.log("[BLE] Device disconnected.");
+        }
+
+        function setConnState(cls, text) {
+            const s = document.getElementById('conn-status');
+            s.className = 'status-dot ' + cls;
+            s.innerText = text;
+        }
+
+        // =====================================================================
+        // AUTO-CONNECT ON PAGE LOAD (Bonding)
+        // =====================================================================
+        window.addEventListener('load', async () => {
+            if (navigator.bluetooth && navigator.bluetooth.getDevices) {
+                try {
+                    const devices = await navigator.bluetooth.getDevices();
+                    const known = devices.find(d => d.name === 'Dickfilm-Espresso');
+                    if (known) {
+                        console.log("[BLE] Found previously paired machine. Auto-connecting...");
+                        connectToDevice(known);
+                    }
+                } catch(e) {
+                    console.log("[BLE] Auto-connect check:", e);
+                }
+            }
+            updateUI();
+        });
+
+        // =====================================================================
+        // INCOMING TELEMETRY RECEIVER & PARSER
+        // =====================================================================
+        function onBleDataReceived(event) {
+            const value = event.target.value;
+            const text = new TextDecoder().decode(value);
+            bleRxBuffer += text;
+
+            // Memory guard against runaway noise
+            if (bleRxBuffer.length > 8192) {
+                bleRxBuffer = bleRxBuffer.slice(-2048);
+            }
+
+            let lines = bleRxBuffer.split('\n');
+            bleRxBuffer = lines.pop(); // Retain incomplete line fragment
+
+            for (let line of lines) {
+                line = line.trim();
+                const startIdx = line.indexOf('{');
+                const endIdx = line.lastIndexOf('}');
+                if (startIdx !== -1 && endIdx > startIdx) {
+                    const jsonStr = line.substring(startIdx, endIdx + 1);
+                    try {
+                        const parsed = JSON.parse(jsonStr);
+                        parseTelemetry(parsed);
+                    } catch(e) {
+                        console.error("[BLE JSON ERR]", e, jsonStr);
+                    }
+                }
+            }
+        }
+
+        function parseTelemetry(d) {
+            // Mode update
+            if (d.cm !== undefined && d.cm !== currentMode) {
+                currentMode = d.cm;
+                updateModeButtons();
+            }
+
+            // Temperatures
+            if (d.tH !== undefined) document.getElementById('v-th').innerText = d.tH.toFixed(1);
+            if (d.tB !== undefined) document.getElementById('v-tb').innerText = d.tB.toFixed(1);
+            if (d.tT !== undefined) document.getElementById('v-tt').innerText = d.tT.toFixed(1);
+
+            // Target Pressure / Flow
+            if (currentMode === 1) {
+                document.getElementById('lbl-ziel').innerText = 'ZIEL FLOW';
+                document.getElementById('unit-ziel').innerText = 'ML/S';
+                if (d.tF !== undefined) document.getElementById('v-tpb').innerText = d.tF.toFixed(1);
+            } else {
+                document.getElementById('lbl-ziel').innerText = 'ZIEL DRUCK';
+                document.getElementById('unit-ziel').innerText = 'BAR';
+                if (d.tP !== undefined) document.getElementById('v-tpb').innerText = d.tP.toFixed(1);
+            }
+
+            // Pressure & Flow
+            if (d.pB !== undefined) document.getElementById('v-pb').innerText = d.pB.toFixed(1);
+            if (d.f !== undefined)  document.getElementById('v-f').innerText = d.f.toFixed(1);
+
+            // Heater Wattage
+            if (d.hW !== undefined) {
+                document.getElementById('v-watt').innerText = d.hW;
+            } else if (d.hP !== undefined) {
+                // Approximate 2300W * pct if W not directly sent
+                document.getElementById('v-watt').innerText = Math.round(d.hP * 23.0);
+            }
+
+            // Pump State & Volume / Duration
+            if (d.p !== undefined) {
+                let isOn = (d.p === 1);
+                if (isOn !== pumpActive) {
+                    pumpActive = isOn;
+                    let btn = document.getElementById('btn-bezug');
+                    btn.innerText = pumpActive ? 'BEZUG STOP' : 'BEZUG START';
+                    btn.className = pumpActive ? 'btn-bezug stop' : 'btn-bezug';
+
+                    // Shot Ended Detection -> Save completed extraction
+                    if (!isOn && wasPumping && activeShotBuffer.length >= 25) {
+                        saveCompletedShot(activeShotBuffer);
+                    }
+                }
+
+                let now = Date.now();
+                let dt = (now - lastTime) / 1000.0;
+                if (dt <= 0 || dt > 1.0) dt = 0.1;
+                lastTime = now;
+
+                if (isOn && !wasPumping) {
+                    totalVolume = 0;
+                    totalTime = 0;
+                    activeShotBuffer = [];
+                }
+
+                if (isOn) {
+                    if (d.f !== undefined) totalVolume += (d.f * dt);
+                    totalTime += dt;
+                    activeShotBuffer.push({
+                        time: totalTime,
+                        pB: d.pB || 0,
+                        f: d.f || 0,
+                        tP: d.tP || 0,
+                        tF: d.tF || 0,
+                        tH: d.tH || 0,
+                        tB: d.tB || 0,
+                        tT: d.tT || 0,
+                        hW: d.hW || 0,
+                        cm: currentMode
+                    });
+                }
+                wasPumping = isOn;
+
+                document.getElementById('v-vol').innerText = totalVolume.toFixed(1);
+                document.getElementById('v-time').innerText = totalTime.toFixed(1);
+            }
+
+            // Realtime Chart History Buffer
+            if (d.tH !== undefined) {
+                history.push(d);
+                if (history.length > maxPts) history.shift();
+                updateUI();
+            }
+        }
+
+        // =====================================================================
+        // COMMAND TRANSMISSION OVER BLE
+        // =====================================================================
+        async function sendRawCmd(cmdStr) {
+            if (!isConnected || !rxChar) {
+                alert("Nicht verbunden! Bitte verbinde zuerst die Maschine.");
+                return;
+            }
+            try {
+                const encoded = new TextEncoder().encode(cmdStr.trim() + '\n');
+                await rxChar.writeValueWithoutResponse(encoded);
+                console.log("[BLE -> STM32]", cmdStr);
+            } catch(e) {
+                // Fallback to writeValue with response if WithoutResponse unsupported
+                try {
+                    const encoded = new TextEncoder().encode(cmdStr.trim() + '\n');
+                    await rxChar.writeValue(encoded);
+                } catch(err2) {
+                    console.error("[BLE] Write failed:", err2);
+                }
+            }
+        }
+
+        function sendParamCmd(cmd, val) {
+            sendRawCmd(cmd + val);
+        }
+
+        function togglePump() {
+            pumpActive = !pumpActive;
+            sendRawCmd('P' + (pumpActive ? '1' : '0'));
+        }
+
+        function togglePI() {
+            piActive = !piActive;
+            document.getElementById('btn-pi').innerText = piActive ? 'PRE-INF: ON' : 'PRE-INF: OFF';
+            sendRawCmd('I' + (piActive ? '1' : '0'));
+        }
+
+        function setMode(mode) {
+            currentMode = mode;
+            sendRawCmd('C' + mode);
+            updateModeButtons();
+        }
+
+        function updateModeButtons() {
+            let bp = document.getElementById('btn-mode-p');
+            let bf = document.getElementById('btn-mode-f');
+            if (bp && bf) {
+                if (currentMode === 1) {
+                    bf.classList.add('active-mode');
+                    bp.classList.remove('active-mode');
+                } else {
+                    bp.classList.add('active-mode');
+                    bf.classList.remove('active-mode');
+                }
+            }
+        }
+
+        function saveCoffeePID() {
+            let p = document.getElementById('pid-p').value;
+            let i = document.getElementById('pid-i').value;
+            let d = document.getElementById('pid-d').value;
+            let f = document.getElementById('pid-f').value;
+            sendRawCmd('KHp ' + p);
+            setTimeout(() => sendRawCmd('KHi ' + i), 50);
+            setTimeout(() => sendRawCmd('KHd ' + d), 100);
+            setTimeout(() => sendRawCmd('KHf ' + f), 150);
+            alert("Kaffee-PID gesendet!");
+        }
+
+        function saveSteamParams() {
+            let sTt = document.getElementById('tune-sTt').value;
+            let sKp = document.getElementById('tune-sKp').value;
+            let sKd = document.getElementById('tune-sKd').value;
+            let sMinP = document.getElementById('tune-sMinP').value;
+            let sPp = document.getElementById('tune-sPp').value;
+            let sPoff = document.getElementById('tune-sPoff').value;
+
+            sendRawCmd('KSt ' + sTt);
+            setTimeout(() => sendRawCmd('SKp ' + sKp), 50);
+            setTimeout(() => sendRawCmd('SKd ' + sKd), 100);
+            setTimeout(() => sendRawCmd('KSm ' + sMinP), 150);
+            setTimeout(() => sendRawCmd('KSp ' + sPp), 200);
+            setTimeout(() => sendRawCmd('KSf ' + sPoff), 250);
+            alert("Dampf-Parameter gesendet!");
+        }
+
+        // =====================================================================
+        // CANVAS CHART RENDERING
+        // =====================================================================
+        function drawChartCanvas(canvasId, dataList, lines, maxVal, yLabelCount, durationSec=0) {
+            const cvs = document.getElementById(canvasId);
+            if (!cvs) return;
+            const ctx = cvs.getContext('2d');
+            const dpr = window.devicePixelRatio || 1;
+            const rect = cvs.getBoundingClientRect();
+            cvs.width = rect.width * dpr;
+            cvs.height = rect.height * dpr;
+            ctx.scale(dpr, dpr);
+
+            const w = rect.width;
+            const h = rect.height;
+            const padL = 28;
+            const padB = 20;
+            const chartW = w - padL;
+            const chartH = h - padB;
+
+            ctx.clearRect(0, 0, w, h);
+
+            // Grid lines
+            ctx.strokeStyle = '#222';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([2, 2]);
+            ctx.font = '9px monospace';
+            ctx.fillStyle = '#666';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+
+            for (let i = 0; i <= yLabelCount; i++) {
+                let yVal = (maxVal / yLabelCount) * i;
+                let yPos = chartH - (i / yLabelCount) * chartH;
+                ctx.beginPath();
+                ctx.moveTo(padL, yPos);
+                ctx.lineTo(w, yPos);
+                ctx.stroke();
+                ctx.fillText(yVal.toFixed(0), padL - 4, yPos);
+            }
+
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            for (let i = 0; i <= 3; i++) {
+                let xPos = padL + (i / 3) * chartW;
+                let t = durationSec > 0 ? (i / 3) * durationSec : i * 10;
+                ctx.fillText(t.toFixed(0) + "s", xPos, chartH + 5);
+            }
+
+            if (!dataList || dataList.length === 0) return;
+
+            // Draw series lines
+            ctx.setLineDash([]);
+            lines.forEach(line => {
+                ctx.beginPath();
+                ctx.strokeStyle = line.color;
+                ctx.lineWidth = line.width || 2;
+                ctx.lineJoin = 'bevel';
+
+                let points = dataList.length;
+                for (let i = 0; i < points; i++) {
+                    let val = dataList[i][line.key];
+                    if (val === undefined) val = 0;
+
+                    let x = padL + (i / Math.max(points - 1, 1)) * chartW;
+                    let y = chartH - ((val / maxVal) * chartH);
+
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+            });
+        }
+
+        function updateUI() {
+            // Pressure & Flow chart
+            let targetKey = (currentMode === 1) ? 'tF' : 'tP';
+            drawChartCanvas('c-bezug', history, [
+                {key: targetKey, color: '#555555', width: 1},
+                {key: 'f', color: '#ff0033', width: 2},
+                {key: 'pB', color: '#ffffff', width: 2}
+            ], 14, 5, 0);
+
+            // Temperature chart
+            drawChartCanvas('c-temp', history, [
+                {key: 'tT', color: '#555555', width: 1},
+                {key: 'tB', color: '#ff0033', width: 2},
+                {key: 'tH', color: '#ffffff', width: 2}
+            ], 140, 7, 0);
+        }
+
+        // =====================================================================
+        // SHOT HISTORIE (Browser LocalStorage + Download)
+        // =====================================================================
+        function saveCompletedShot(shotPoints) {
+            if (!shotPoints || shotPoints.length < 25) return;
+            let dur = shotPoints.length * 0.1;
+            let vol = 0;
+            let sumPb = 0;
+            let sumTb = 0;
+
+            shotPoints.forEach(p => {
+                vol += (p.f * 0.1);
+                sumPb += p.pB;
+                sumTb += p.tB;
+            });
+
+            const shotRecord = {
+                id: 'shot_' + Date.now(),
+                date: new Date().toLocaleString('de-CH', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }),
+                duration: dur.toFixed(1),
+                volume: vol.toFixed(1),
+                avgPressure: (sumPb / shotPoints.length).toFixed(1),
+                avgTemp: (sumTb / shotPoints.length).toFixed(1),
+                data: shotPoints
+            };
+
+            savedShots.unshift(shotRecord);
+            if (savedShots.length > 20) savedShots.pop(); // Keep last 20 shots
+
+            try {
+                localStorage.setItem('dickfilm_shots', JSON.stringify(savedShots));
+            } catch(e) {}
+
+            updateHistoryCount();
+            console.log("[SHOT] Saved extraction:", shotRecord.id, "Duration:", dur, "s");
+        }
+
+        function updateHistoryCount() {
+            document.getElementById('hist-count').innerText = savedShots.length;
+        }
+
+        function openHistory() {
+            document.getElementById('main-view').style.display = 'none';
+            document.getElementById('modal').style.display = 'block';
+            renderHistoryList();
+        }
+
+        function closeHistory() {
+            document.getElementById('modal').style.display = 'none';
+            document.getElementById('main-view').style.display = 'block';
+        }
+
+        function renderHistoryList() {
+            const list = document.getElementById('hist-list');
+            if (savedShots.length === 0) {
+                list.innerHTML = '<span style="color:#666">Keine Bezüge gespeichert.</span>';
+                document.getElementById('hist-chart-container').style.display = 'none';
+                return;
+            }
+
+            let html = '';
+            savedShots.forEach((s, idx) => {
+                html += `<button class="btn-hist-item" onclick="loadHistShot(${idx})">
+                    <strong>BEZUG ${idx + 1}</strong> (${s.date}) — ${s.volume} ml in ${s.duration} s @ ${s.avgPressure} bar / ${s.avgTemp} °C
+                </button>`;
+            });
+            list.innerHTML = html;
+        }
+
+        function loadHistShot(idx) {
+            selectedShotIndex = idx;
+            const shot = savedShots[idx];
+            if (!shot) return;
+
+            document.getElementById('hist-chart-container').style.display = 'block';
+            document.getElementById('h-dur').innerText = shot.duration;
+            document.getElementById('h-vol').innerText = shot.volume;
+            document.getElementById('h-pb').innerText = shot.avgPressure;
+            document.getElementById('h-tb').innerText = shot.avgTemp;
+
+            let durSec = parseFloat(shot.duration) || 30;
+
+            drawChartCanvas('c-hist-bezug', shot.data, [
+                {key: 'tP', color: '#555555', width: 1},
+                {key: 'f', color: '#ff0033', width: 2},
+                {key: 'pB', color: '#ffffff', width: 2}
+            ], 14, 5, durSec);
+
+            drawChartCanvas('c-hist-temp', shot.data, [
+                {key: 'tT', color: '#555555', width: 1},
+                {key: 'tB', color: '#ff0033', width: 2},
+                {key: 'tH', color: '#ffffff', width: 2}
+            ], 140, 7, durSec);
+        }
+
+        function downloadCurrentShotJSON() {
+            if (selectedShotIndex < 0 || !savedShots[selectedShotIndex]) {
+                alert("Bitte wähle zuerst einen Bezug aus der Liste aus!");
+                return;
+            }
+            const shot = savedShots[selectedShotIndex];
+            let jsonl = "";
+            shot.data.forEach(p => {
+                jsonl += JSON.stringify(p) + '\n';
+            });
+
+            const blob = new Blob([jsonl], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = shot.id + '.jsonl';
+            a.click();
+        }
+
+        function clearAllShots() {
+            if (confirm("Wirklich alle gespeicherten Bezüge löschen?")) {
+                savedShots = [];
+                localStorage.removeItem('dickfilm_shots');
+                updateHistoryCount();
+                renderHistoryList();
+            }
+        }
+
+        function toggleAccordion(id, el) {
+            const content = document.getElementById(id);
+            if (content.classList.contains('open')) {
+                content.classList.remove('open');
+                el.classList.remove('open');
+            } else {
+                content.classList.add('open');
+                el.classList.add('open');
+            }
+        }
+    </script>
+</body>
+</html>
