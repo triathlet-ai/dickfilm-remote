@@ -91,20 +91,38 @@
         .flex-row { display: flex; gap: 8px; }
 
         .btn-bezug {
-            flex: 2;
+            flex: 1;
             background-color: transparent;
             color: var(--primary);
             border: 2px solid var(--primary);
-            padding: 16px;
-            font-size: 1.2rem;
+            padding: 16px 8px;
+            font-size: 1.05rem;
             font-family: var(--font);
             font-weight: bold;
-            letter-spacing: 3px;
+            letter-spacing: 2px;
             cursor: pointer;
             transition: all 0.1s;
+            text-align: center;
         }
         .btn-bezug:active { transform: scale(0.98); }
         .btn-bezug.stop { background-color: var(--danger); color: #000; border-color: var(--danger); }
+
+        .btn-steam {
+            flex: 1;
+            background-color: transparent;
+            color: #06b6d4;
+            border: 2px solid #06b6d4;
+            padding: 16px 8px;
+            font-size: 1.05rem;
+            font-family: var(--font);
+            font-weight: bold;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.1s;
+            text-align: center;
+        }
+        .btn-steam:active { transform: scale(0.98); }
+        .btn-steam.active { background-color: #06b6d4; color: #000; border-color: #06b6d4; }
 
         .btn-action {
             flex: 1;
@@ -123,6 +141,11 @@
         .btn-action.active-mode {
             border: 1px solid var(--primary);
             background-color: var(--primary);
+            color: #000;
+        }
+        .btn-action.active-flush {
+            border: 1px solid #f59e0b;
+            background-color: #f59e0b;
             color: #000;
         }
 
@@ -321,10 +344,12 @@
 
             <div class="flex-row" style="margin-bottom: 8px;">
                 <button id="btn-pi" class="btn-action" onclick="togglePI()">PRE-INF: ON</button>
+                <button id="btn-flush" class="btn-action" onclick="toggleFlush()">FLUSH</button>
                 <button class="btn-action" onclick="openHistory()">HISTORIE (<span id="hist-count">0</span>)</button>
             </div>
             <div class="flex-row">
                 <button id="btn-bezug" class="btn-bezug" onclick="togglePump()">BEZUG START</button>
+                <button id="btn-steam" class="btn-steam" onclick="toggleSteam()">DAMPF START</button>
             </div>
         </div>
 
@@ -415,31 +440,28 @@
                 </div>
                 <button class="btn-action" style="width: 100%; margin-bottom: 16px;" onclick="saveCoffeePID()">SPEICHERN KAFFEE-PID</button>
 
-                <span class="val-label" style="display:block; margin-bottom:6px;">DAMPF-PARAMETER (FTH)</span>
-                <div class="grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 12px;">
-                    <div class="val-group" style="padding: 4px;">
-                        <span class="val-label">DAMPF ZIEL (°C)</span>
-                        <input type="number" id="tune-sTt" value="135.0" step="1.0" style="padding:4px; text-align:center;">
+                <span class="val-label" style="display:block; margin-bottom:6px;">DAMPF MIKRODOSING (FTH)</span>
+                <p style="font-size:10px; color:var(--text-dim); margin-bottom:8px;">Kraftvolles Takten gegen 2-3 bar Dampfgegendruck. 55% = ~1265 W.</p>
+                <div class="grid" style="grid-template-columns: repeat(2, 1fr); margin-bottom: 12px; gap: 6px;">
+                    <div class="val-group" style="padding: 6px;">
+                        <span class="val-label">HEIZUNG (%)</span>
+                        <input type="number" id="tune-sMinP" value="55.0" step="1.0" min="0" max="100" style="padding:6px; text-align:center; font-size:14px; font-weight:bold;">
                     </div>
-                    <div class="val-group" style="padding: 4px;">
-                        <span class="val-label">DAMPF Kp</span>
-                        <input type="number" id="tune-sKp" value="10.0" step="0.5" style="padding:4px; text-align:center;">
+                    <div class="val-group" style="padding: 6px;">
+                        <span class="val-label">PULS PWR (%)</span>
+                        <input type="number" id="tune-sPp" value="60" step="1" min="0" max="100" style="padding:6px; text-align:center; font-size:14px; font-weight:bold;">
                     </div>
-                    <div class="val-group" style="padding: 4px;">
-                        <span class="val-label">DAMPF Kd</span>
-                        <input type="number" id="tune-sKd" value="0.0" step="0.5" style="padding:4px; text-align:center;">
+                    <div class="val-group" style="padding: 6px;">
+                        <span class="val-label">PULS AN (MS)</span>
+                        <input type="number" id="tune-sPon" value="180" step="10" min="20" max="2000" style="padding:6px; text-align:center; font-size:14px; font-weight:bold;">
                     </div>
-                    <div class="val-group" style="padding: 4px;">
-                        <span class="val-label">MIN POWER (%)</span>
-                        <input type="number" id="tune-sMinP" value="75.0" step="1.0" style="padding:4px; text-align:center;">
-                    </div>
-                    <div class="val-group" style="padding: 4px;">
-                        <span class="val-label">PUMPE PWR (%)</span>
-                        <input type="number" id="tune-sPp" value="40" step="1" style="padding:4px; text-align:center;">
-                    </div>
-                    <div class="val-group" style="padding: 4px;">
+                    <div class="val-group" style="padding: 6px;">
                         <span class="val-label">PAUSE AUS (MS)</span>
-                        <input type="number" id="tune-sPoff" value="260" step="10" style="padding:4px; text-align:center;">
+                        <input type="number" id="tune-sPoff" value="400" step="20" min="0" max="3000" style="padding:6px; text-align:center; font-size:14px; font-weight:bold;">
+                    </div>
+                    <div class="val-group" style="grid-column: span 2; padding: 6px;">
+                        <span class="val-label">FLOWSTART VORLAUF (MS)</span>
+                        <input type="number" id="tune-sFs" value="1500" step="100" min="0" max="10000" style="padding:6px; text-align:center; font-size:14px; font-weight:bold;">
                     </div>
                 </div>
                 <button class="btn-action" style="width: 100%;" onclick="saveSteamParams()">SPEICHERN DAMPF-PARAMETER</button>
@@ -451,7 +473,8 @@
     <!-- MODAL HISTORY VIEW -->
     <div id="modal">
         <button class="btn-close" onclick="closeHistory()">SCHLIESSEN</button>
-        <div class="flex-row" style="margin-bottom: 12px;">
+        <div class="flex-row" style="margin-bottom: 12px; gap: 8px;">
+            <button class="btn-action" style="background:#0284c7; color:#fff;" onclick="downloadCurrentShotCSV()">DOWNLOAD (.CSV)</button>
             <button class="btn-action" onclick="downloadCurrentShotJSON()">DOWNLOAD (.JSONL)</button>
             <button class="btn-action" style="color:var(--danger); border-color:var(--danger);" onclick="clearAllShots()">ALLE LÖSCHEN</button>
         </div>
@@ -514,6 +537,7 @@
 
         // UI & Telemetry State
         let pumpActive = false;
+        let flushActive = false;
         let piActive = true;
         let currentMode = 0; // 0 = Pressure, 1 = Flow
         let history = [];
@@ -523,6 +547,7 @@
         let totalTime = 0;
         let lastTime = Date.now();
         let wasPumping = false;
+        let wasFlushing = false;
 
         // Shot Recording
         let activeShotBuffer = [];
@@ -714,17 +739,41 @@
                 document.getElementById('v-watt').innerText = Math.round(d.hP * 23.0);
             }
 
-            // Pump State & Volume / Duration
-            if (d.p !== undefined) {
-                let isOn = (d.p === 1);
+            // Pump State & Volume / Duration (Coffee brew d.p === 1 OR Steam dispensing d.sb === 1 OR Flush d.fl === 1)
+            if (d.p !== undefined || d.sb !== undefined || d.fl !== undefined) {
+                let isSteamDispensing = (d.sb === 1);
+                let isFlushing = (d.fl === 1);
+                let isCoffeeBrewing = (d.p === 1 && !isFlushing);
+                let isOn = (isCoffeeBrewing || isSteamDispensing || isFlushing);
+
+                // Update Bezug Button
+                let btnBezug = document.getElementById('btn-bezug');
+                if (btnBezug) {
+                    btnBezug.innerText = isCoffeeBrewing ? 'BEZUG STOP' : 'BEZUG START';
+                    btnBezug.className = isCoffeeBrewing ? 'btn-bezug stop' : 'btn-bezug';
+                }
+
+                // Update Steam Button
+                let btnSteam = document.getElementById('btn-steam');
+                if (btnSteam) {
+                    steamActive = isSteamDispensing;
+                    btnSteam.innerText = isSteamDispensing ? 'DAMPF STOP' : 'DAMPF START';
+                    btnSteam.className = isSteamDispensing ? 'btn-steam active' : 'btn-steam';
+                }
+
+                // Update Flush Button
+                let btnFlush = document.getElementById('btn-flush');
+                if (btnFlush) {
+                    flushActive = isFlushing;
+                    btnFlush.innerText = isFlushing ? 'FLUSH STOP' : 'FLUSH';
+                    btnFlush.className = isFlushing ? 'btn-action active-flush' : 'btn-action';
+                }
+
                 if (isOn !== pumpActive) {
                     pumpActive = isOn;
-                    let btn = document.getElementById('btn-bezug');
-                    btn.innerText = pumpActive ? 'BEZUG STOP' : 'BEZUG START';
-                    btn.className = pumpActive ? 'btn-bezug stop' : 'btn-bezug';
 
-                    // Shot Ended Detection -> Save completed extraction
-                    if (!isOn && wasPumping && activeShotBuffer.length >= 25) {
+                    // Shot / Steam Ended Detection -> Save completed extraction (ignore pure flush)
+                    if (!isOn && wasPumping && activeShotBuffer.length >= 15 && !wasFlushing) {
                         saveCompletedShot(activeShotBuffer);
                     }
                 }
@@ -757,6 +806,7 @@
                     });
                 }
                 wasPumping = isOn;
+                wasFlushing = isFlushing;
 
                 document.getElementById('v-vol').innerText = totalVolume.toFixed(1);
                 document.getElementById('v-time').innerText = totalTime.toFixed(1);
@@ -798,8 +848,29 @@
         }
 
         function togglePump() {
-            pumpActive = !pumpActive;
-            sendRawCmd('P' + (pumpActive ? '1' : '0'));
+            let nextState = !pumpActive;
+            sendRawCmd('P' + (nextState ? '1' : '0'));
+        }
+
+        function toggleFlush() {
+            flushActive = !flushActive;
+            sendRawCmd(flushActive ? 'FLS1' : 'FLS0');
+            let btnFlush = document.getElementById('btn-flush');
+            if (btnFlush) {
+                btnFlush.innerText = flushActive ? 'FLUSH STOP' : 'FLUSH';
+                btnFlush.className = flushActive ? 'btn-action active-flush' : 'btn-action';
+            }
+        }
+
+        let steamActive = false;
+        function toggleSteam() {
+            steamActive = !steamActive;
+            sendRawCmd(steamActive ? 'STM1' : 'STM0');
+            let btnSteam = document.getElementById('btn-steam');
+            if (btnSteam) {
+                btnSteam.innerText = steamActive ? 'DAMPF STOP' : 'DAMPF START';
+                btnSteam.className = steamActive ? 'btn-steam active' : 'btn-steam';
+            }
         }
 
         function togglePI() {
@@ -841,20 +912,18 @@
         }
 
         function saveSteamParams() {
-            let sTt = document.getElementById('tune-sTt').value;
-            let sKp = document.getElementById('tune-sKp').value;
-            let sKd = document.getElementById('tune-sKd').value;
             let sMinP = document.getElementById('tune-sMinP').value;
             let sPp = document.getElementById('tune-sPp').value;
+            let sPon = document.getElementById('tune-sPon').value;
             let sPoff = document.getElementById('tune-sPoff').value;
+            let sFs = document.getElementById('tune-sFs').value;
 
-            sendRawCmd('KSt ' + sTt);
-            setTimeout(() => sendRawCmd('SKp ' + sKp), 50);
-            setTimeout(() => sendRawCmd('SKd ' + sKd), 100);
-            setTimeout(() => sendRawCmd('KSm ' + sMinP), 150);
-            setTimeout(() => sendRawCmd('KSp ' + sPp), 200);
-            setTimeout(() => sendRawCmd('KSf ' + sPoff), 250);
-            alert("Dampf-Parameter gesendet!");
+            sendRawCmd('KSm ' + sMinP);
+            setTimeout(() => sendRawCmd('KSp ' + sPp), 50);
+            setTimeout(() => sendRawCmd('KSo ' + sPon), 100);
+            setTimeout(() => sendRawCmd('KSf ' + sPoff), 150);
+            setTimeout(() => sendRawCmd('KSs ' + sFs), 200);
+            alert(`Dampf-Parameter gesendet: Heizung ${sMinP}%, Puls ${sPp}%, An ${sPon}ms, Aus ${sPoff}ms, Flowstart ${sFs}ms`);
         }
 
         // =====================================================================
@@ -964,8 +1033,12 @@
                 sumTb += p.tB;
             });
 
+            let isSteamRun = shotPoints.some(p => p.cm === 'Dampf' || (p.tT > 105) || (p.tH > 105));
+            let prefix = isSteamRun ? 'steam_' : 'shot_';
+
             const shotRecord = {
-                id: 'shot_' + Date.now(),
+                id: prefix + Date.now(),
+                mode: isSteamRun ? 'DAMPF' : 'BEZUG',
                 date: new Date().toLocaleString('de-CH', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }),
                 duration: dur.toFixed(1),
                 volume: vol.toFixed(1),
@@ -1010,8 +1083,10 @@
 
             let html = '';
             savedShots.forEach((s, idx) => {
+                let badgeColor = (s.mode === 'DAMPF') ? '#0891b2' : '#059669';
                 html += `<button class="btn-hist-item" onclick="loadHistShot(${idx})">
-                    <strong>BEZUG ${idx + 1}</strong> (${s.date}) — ${s.volume} ml in ${s.duration} s @ ${s.avgPressure} bar / ${s.avgTemp} °C
+                    <span style="display:inline-block; padding:1px 6px; border-radius:4px; font-size:10px; font-weight:bold; background:${badgeColor}; color:#fff; margin-right:6px;">${s.mode || 'BEZUG'}</span>
+                    <strong>${idx + 1}</strong> (${s.date}) — ${s.volume} ml in ${s.duration} s @ ${s.avgPressure} bar / ${s.avgTemp} °C
                 </button>`;
             });
             list.innerHTML = html;
@@ -1041,6 +1116,32 @@
                 {key: 'tB', color: '#ff0033', width: 2},
                 {key: 'tH', color: '#ffffff', width: 2}
             ], 140, 7, durSec);
+        }
+
+        function downloadCurrentShotCSV() {
+            if (selectedShotIndex < 0 || !savedShots[selectedShotIndex]) {
+                alert("Bitte wähle zuerst einen Eintrag aus der Liste aus!");
+                return;
+            }
+            const shot = savedShots[selectedShotIndex];
+            let csv = "Time_s,Pressure_bar,Flow_mls,Volume_ml,Temp_Heater_C,Temp_Brew_C,Pump_Power_pct,Heater_Watt\r\n";
+            let vol = 0;
+            shot.data.forEach(p => {
+                vol += (p.f * 0.1);
+                let pB = (p.pB !== undefined) ? p.pB.toFixed(2) : "0.00";
+                let f = (p.f !== undefined) ? p.f.toFixed(2) : "0.00";
+                let tH = (p.tH !== undefined) ? p.tH.toFixed(1) : "0.0";
+                let tB = (p.tB !== undefined) ? p.tB.toFixed(1) : "0.0";
+                let pW = (p.pW !== undefined) ? p.pW : 0;
+                let hW = (p.hW !== undefined) ? p.hW : 0;
+                csv += `${p.time.toFixed(2)},${pB},${f},${vol.toFixed(2)},${tH},${tB},${pW},${hW}\r\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = shot.id + '.csv';
+            a.click();
         }
 
         function downloadCurrentShotJSON() {
