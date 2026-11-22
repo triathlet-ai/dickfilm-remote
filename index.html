@@ -440,28 +440,35 @@
                 </div>
                 <button class="btn-action" style="width: 100%; margin-bottom: 16px;" onclick="saveCoffeePID()">SPEICHERN KAFFEE-PID</button>
 
-                <span class="val-label" style="display:block; margin-bottom:6px;">DAMPF MIKRODOSING (FTH)</span>
-                <p style="font-size:10px; color:var(--text-dim); margin-bottom:8px;">Kraftvolles Takten gegen 2-3 bar Dampfgegendruck. 55% = ~1265 W.</p>
+                <span class="val-label" style="display:block; margin-bottom:6px;">DAMPF-STEUERUNG (TURBO & MIKRODOSING)</span>
+                <p style="font-size:10px; color:var(--text-dim); margin-bottom:8px;">Puls-synchronisiertes Heizen (2300W bei Injektion, 600W Pause). Flow: ~0.6 ml/s.</p>
                 <div class="grid" style="grid-template-columns: repeat(2, 1fr); margin-bottom: 12px; gap: 6px;">
                     <div class="val-group" style="padding: 6px;">
-                        <span class="val-label">HEIZUNG (%)</span>
+                        <span class="val-label">TURBO-VORHEIZEN</span>
+                        <select id="tune-sTurbo" style="padding:6px; text-align:center; font-size:13px; font-weight:bold; width:100%; border-radius:4px; border:1px solid #ccc; background:#fff;">
+                            <option value="1" selected>EIN (2300W)</option>
+                            <option value="0">AUS (Sofort)</option>
+                        </select>
+                    </div>
+                    <div class="val-group" style="padding: 6px;">
+                        <span class="val-label">VORHEIZ-ZIEL (°C)</span>
+                        <input type="number" id="tune-sTtemp" value="130" step="1" min="100" max="140" style="padding:6px; text-align:center; font-size:14px; font-weight:bold;">
+                    </div>
+                    <div class="val-group" style="padding: 6px;">
+                        <span class="val-label">BASIS-HEIZUNG (%)</span>
                         <input type="number" id="tune-sMinP" value="55.0" step="1.0" min="0" max="100" style="padding:6px; text-align:center; font-size:14px; font-weight:bold;">
                     </div>
                     <div class="val-group" style="padding: 6px;">
                         <span class="val-label">PULS PWR (%)</span>
-                        <input type="number" id="tune-sPp" value="60" step="1" min="0" max="100" style="padding:6px; text-align:center; font-size:14px; font-weight:bold;">
+                        <input type="number" id="tune-sPp" value="35" step="1" min="0" max="100" style="padding:6px; text-align:center; font-size:14px; font-weight:bold;">
                     </div>
                     <div class="val-group" style="padding: 6px;">
                         <span class="val-label">PULS AN (MS)</span>
-                        <input type="number" id="tune-sPon" value="180" step="10" min="20" max="2000" style="padding:6px; text-align:center; font-size:14px; font-weight:bold;">
+                        <input type="number" id="tune-sPon" value="90" step="10" min="20" max="2000" style="padding:6px; text-align:center; font-size:14px; font-weight:bold;">
                     </div>
                     <div class="val-group" style="padding: 6px;">
                         <span class="val-label">PAUSE AUS (MS)</span>
-                        <input type="number" id="tune-sPoff" value="400" step="20" min="0" max="3000" style="padding:6px; text-align:center; font-size:14px; font-weight:bold;">
-                    </div>
-                    <div class="val-group" style="grid-column: span 2; padding: 6px;">
-                        <span class="val-label">FLOWSTART VORLAUF (MS)</span>
-                        <input type="number" id="tune-sFs" value="1500" step="100" min="0" max="10000" style="padding:6px; text-align:center; font-size:14px; font-weight:bold;">
+                        <input type="number" id="tune-sPoff" value="250" step="10" min="0" max="3000" style="padding:6px; text-align:center; font-size:14px; font-weight:bold;">
                     </div>
                 </div>
                 <button class="btn-action" style="width: 100%;" onclick="saveSteamParams()">SPEICHERN DAMPF-PARAMETER</button>
@@ -912,18 +919,20 @@
         }
 
         function saveSteamParams() {
+            let sTurbo = document.getElementById('tune-sTurbo').value;
+            let sTtemp = document.getElementById('tune-sTtemp').value;
             let sMinP = document.getElementById('tune-sMinP').value;
             let sPp = document.getElementById('tune-sPp').value;
             let sPon = document.getElementById('tune-sPon').value;
             let sPoff = document.getElementById('tune-sPoff').value;
-            let sFs = document.getElementById('tune-sFs').value;
 
-            sendRawCmd('KSm ' + sMinP);
-            setTimeout(() => sendRawCmd('KSp ' + sPp), 50);
-            setTimeout(() => sendRawCmd('KSo ' + sPon), 100);
-            setTimeout(() => sendRawCmd('KSf ' + sPoff), 150);
-            setTimeout(() => sendRawCmd('KSs ' + sFs), 200);
-            alert(`Dampf-Parameter gesendet: Heizung ${sMinP}%, Puls ${sPp}%, An ${sPon}ms, Aus ${sPoff}ms, Flowstart ${sFs}ms`);
+            sendRawCmd('KSe ' + sTurbo);
+            setTimeout(() => sendRawCmd('KSb ' + sTtemp), 40);
+            setTimeout(() => sendRawCmd('KSm ' + sMinP), 80);
+            setTimeout(() => sendRawCmd('KSp ' + sPp), 120);
+            setTimeout(() => sendRawCmd('KSo ' + sPon), 160);
+            setTimeout(() => sendRawCmd('KSf ' + sPoff), 200);
+            alert(`Dampf-Parameter gesendet: Turbo ${sTurbo === '1' ? 'Ein' : 'Aus'} (${sTtemp}°C), Heizung ${sMinP}%, Puls ${sPp}%, An ${sPon}ms, Aus ${sPoff}ms`);
         }
 
         // =====================================================================
