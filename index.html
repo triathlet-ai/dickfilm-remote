@@ -66,6 +66,7 @@
         .status-dot.online { color: var(--success); }
         .status-dot.connecting { color: var(--warning); animation: pulse 1s infinite alternate; }
         .status-dot.offline { color: var(--danger); }
+        .status-dot.error { color: #ef4444; font-weight: bold; animation: pulse 0.5s infinite alternate; }
         
         @keyframes pulse { from { opacity: 0.4; } to { opacity: 1; } }
 
@@ -298,10 +299,25 @@
         <div class="card">
             <h2>
                 <span>STATUS <span id="conn-status" class="status-dot offline">SYS.OFFLINE</span></span>
-                <div>
+                <div style="display:flex; gap:6px;">
+                    <button id="btn-reset" class="btn-ble" style="display:none; border-color:var(--danger); color:var(--danger);" onclick="resetSystemError()" title="Fehler & Not-Aus zurücksetzen">RESET ↺</button>
                     <button id="btn-connect" class="btn-ble" onclick="handleConnectClick()">+ KOPPELN</button>
                 </div>
             </h2>
+
+            <!-- ALARM & FEHLER BANNER -->
+            <div id="error-banner" style="display:none; background:#450a0a; border:1px solid #ef4444; border-radius:6px; padding:10px 14px; margin-bottom:12px; color:#fee2e2;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <span style="font-size:22px; line-height:1;">⚠️</span>
+                        <div>
+                            <strong style="color:#f87171; font-size:11px; letter-spacing:0.08em; display:block;">FEHLER / SICHERHEITS-ALARM:</strong>
+                            <span id="error-text" style="font-size:13px; font-weight:bold; color:#fff;">--</span>
+                        </div>
+                    </div>
+                    <button class="btn-action" style="background:#dc2626; color:#fff; font-weight:bold; padding:8px 16px; font-size:12px; border:none; letter-spacing:1px;" onclick="resetSystemError()">RESET ↺</button>
+                </div>
+            </div>
             
             <div class="grid">
                 <div class="val-group">
@@ -413,14 +429,14 @@
             </div>
         </div>
 
-        <!-- ERWEITERTES TUNING (KAFFEE & DAMPF PID) -->
+        <!-- ERWEITERTES TUNING (DICKFILM, BRÜHGRUPPE, PUMPE & DAMPF) -->
         <div class="card">
             <h2 class="accordion-header" onclick="toggleAccordion('tuning-content', this)">
                 FEINABSTIMMUNG // TUNING
             </h2>
             <div id="tuning-content" class="accordion-content">
-                <span class="val-label" style="display:block; margin-bottom:6px;">KAFFEE HEIZER PID (WATT)</span>
-                <div class="grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 12px;">
+                <span class="val-label" style="display:block; margin-bottom:6px;">DICKFILM HEIZER PID (WATT)</span>
+                <div class="grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 10px;">
                     <div class="val-group" style="padding: 4px;">
                         <span class="val-label">Kp</span>
                         <input type="number" id="pid-p" value="28.0" step="0.5" style="padding:4px; text-align:center;">
@@ -438,22 +454,53 @@
                         <input type="number" id="pid-f" value="1.10" step="0.05" style="padding:4px; text-align:center;">
                     </div>
                 </div>
-                <button class="btn-action" style="width: 100%; margin-bottom: 16px;" onclick="saveCoffeePID()">SPEICHERN KAFFEE-PID</button>
+                <button class="btn-action" style="width: 100%; margin-bottom: 14px;" onclick="saveCoffeePID()">SPEICHERN DICKFILM-PID</button>
 
-                <span class="val-label" style="display:block; margin-bottom:6px;">DAMPF-STEUERUNG (TURBO & MIKRODOSING)</span>
-                <p style="font-size:10px; color:var(--text-dim); margin-bottom:8px;">Puls-synchronisiertes Heizen (2300W bei Injektion, 600W Pause). Flow: ~0.6 ml/s.</p>
-                <div class="grid" style="grid-template-columns: repeat(2, 1fr); margin-bottom: 12px; gap: 6px;">
-                    <div class="val-group" style="padding: 6px;">
-                        <span class="val-label">TURBO-VORHEIZEN</span>
-                        <select id="tune-sTurbo" style="padding:6px; text-align:center; font-size:13px; font-weight:bold; width:100%; border-radius:4px; border:1px solid #ccc; background:#fff;">
-                            <option value="1" selected>EIN (2300W)</option>
-                            <option value="0">AUS (Sofort)</option>
-                        </select>
+                <span class="val-label" style="display:block; margin-bottom:6px;">BRÜHGRUPPEN PID (SSR 2 - REAKTIV)</span>
+                <div class="grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 10px;">
+                    <div class="val-group" style="padding: 4px;">
+                        <span class="val-label">Kp</span>
+                        <input type="number" id="pid-brew-p" value="150.0" step="5.0" style="padding:4px; text-align:center;">
                     </div>
-                    <div class="val-group" style="padding: 6px;">
-                        <span class="val-label">VORHEIZ-ZIEL (°C)</span>
-                        <input type="number" id="tune-sTtemp" value="130" step="1" min="100" max="140" style="padding:6px; text-align:center; font-size:14px; font-weight:bold;">
+                    <div class="val-group" style="padding: 4px;">
+                        <span class="val-label">Ki</span>
+                        <input type="number" id="pid-brew-i" value="3.5" step="0.2" style="padding:4px; text-align:center;">
                     </div>
+                    <div class="val-group" style="padding: 4px;">
+                        <span class="val-label">Kd</span>
+                        <input type="number" id="pid-brew-d" value="35.0" step="1.0" style="padding:4px; text-align:center;">
+                    </div>
+                    <div class="val-group" style="padding: 4px;">
+                        <span class="val-label">Max %</span>
+                        <input type="number" id="pid-brew-max" value="70.0" step="1.0" min="10" max="100" style="padding:4px; text-align:center;">
+                    </div>
+                </div>
+                <button class="btn-action" style="width: 100%; margin-bottom: 14px;" onclick="saveBrewPID()">SPEICHERN BRÜHGRUPPEN-PID</button>
+
+                <span class="val-label" style="display:block; margin-bottom:6px;">PUMPEN-REGELUNG (DRUCK & FLOW PI)</span>
+                <div class="grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 10px;">
+                    <div class="val-group" style="padding: 4px;">
+                        <span class="val-label">Druck Kp</span>
+                        <input type="number" id="pump-p-kp" value="2.0" step="0.1" style="padding:4px; text-align:center;">
+                    </div>
+                    <div class="val-group" style="padding: 4px;">
+                        <span class="val-label">Druck Ki</span>
+                        <input type="number" id="pump-p-ki" value="1.5" step="0.1" style="padding:4px; text-align:center;">
+                    </div>
+                    <div class="val-group" style="padding: 4px;">
+                        <span class="val-label">Flow Kp</span>
+                        <input type="number" id="pump-f-kp" value="3.5" step="0.1" style="padding:4px; text-align:center;">
+                    </div>
+                    <div class="val-group" style="padding: 4px;">
+                        <span class="val-label">Flow Ki</span>
+                        <input type="number" id="pump-f-ki" value="2.0" step="0.1" style="padding:4px; text-align:center;">
+                    </div>
+                </div>
+                <button class="btn-action" style="width: 100%; margin-bottom: 14px;" onclick="savePumpPID()">SPEICHERN PUMPEN-REGELUNG</button>
+
+                <span class="val-label" style="display:block; margin-bottom:6px;">DAMPF-PARAMETER (MIKRODOSIERUNG)</span>
+                <p style="font-size:10px; color:var(--text-dim); margin-bottom:8px;">Kontinuierliche Dampferzeugung (0.5s Ventilöffnung, gepulste Mikrodosierung ~0.6 ml/s).</p>
+                <div class="grid" style="grid-template-columns: repeat(2, 1fr); margin-bottom: 10px; gap: 6px;">
                     <div class="val-group" style="padding: 6px;">
                         <span class="val-label">BASIS-HEIZUNG (%)</span>
                         <input type="number" id="tune-sMinP" value="55.0" step="1.0" min="0" max="100" style="padding:6px; text-align:center; font-size:14px; font-weight:bold;">
@@ -463,7 +510,7 @@
                         <input type="number" id="tune-sPp" value="35" step="1" min="0" max="100" style="padding:6px; text-align:center; font-size:14px; font-weight:bold;">
                     </div>
                     <div class="val-group" style="padding: 6px;">
-                        <span class="val-label">PULS AN (MS)</span>
+                        <span class="val-label">INJEKTION AN (MS)</span>
                         <input type="number" id="tune-sPon" value="90" step="10" min="20" max="2000" style="padding:6px; text-align:center; font-size:14px; font-weight:bold;">
                     </div>
                     <div class="val-group" style="padding: 6px;">
@@ -628,6 +675,8 @@
                 setConnState('online', 'SYS.ONLINE (BLE)');
                 document.getElementById('btn-connect').innerText = 'TRENNEN';
                 document.getElementById('btn-connect').classList.add('disconnect');
+                const btnReset = document.getElementById('btn-reset');
+                if (btnReset) btnReset.style.display = 'inline-block';
                 console.log("[BLE] Successfully connected!");
 
             } catch (err) {
@@ -648,9 +697,14 @@
             isConnected = false;
             rxChar = null;
             txChar = null;
+            tuningInputsPopulated = false;
             setConnState('offline', 'SYS.OFFLINE');
             document.getElementById('btn-connect').innerText = '+ KOPPELN';
             document.getElementById('btn-connect').classList.remove('disconnect');
+            const btnReset = document.getElementById('btn-reset');
+            if (btnReset) btnReset.style.display = 'none';
+            const errBanner = document.getElementById('error-banner');
+            if (errBanner) errBanner.style.display = 'none';
             console.log("[BLE] Device disconnected.");
         }
 
@@ -712,6 +766,41 @@
         }
 
         function parseTelemetry(d) {
+            initTuningInputs(d);
+
+            // Error & Safety Handling (Bitmask d.e)
+            if (d.e !== undefined) {
+                const errBanner = document.getElementById('error-banner');
+                const errText = document.getElementById('error-text');
+                const btnReset = document.getElementById('btn-reset');
+
+                if (d.e > 0) {
+                    let errs = [];
+                    if (d.e & 1)  errs.push("E1: Dickfilm NTC Sensor fehlt/defekt (<=0°C)");
+                    if (d.e & 2)  errs.push("E2: Brühgruppen PT1000 Sensor fehlt/defekt (<=0°C)");
+                    if (d.e & 4)  errs.push("E4: E-FAST Notabschaltung / Hardware-Schutz aktiv");
+                    if (d.e & 8)  errs.push("E8: Übertemperatur Dickfilm (≥165°C Not-Aus)");
+                    if (d.e & 16) errs.push("E16: Wassertank leer (Schwimmer offen)");
+                    if (errs.length === 0) errs.push("E" + d.e + ": Unbekannter Systemfehler Code " + d.e);
+
+                    if (errBanner) errBanner.style.display = 'block';
+                    if (errText) errText.innerText = errs.join(" | ");
+                    if (btnReset) {
+                        btnReset.style.display = 'inline-block';
+                        btnReset.style.backgroundColor = '#dc2626';
+                        btnReset.style.color = '#ffffff';
+                    }
+                    setConnState('error', 'SYS.FEHLER [E' + d.e + ']');
+                } else {
+                    if (errBanner) errBanner.style.display = 'none';
+                    if (btnReset) {
+                        btnReset.style.backgroundColor = 'transparent';
+                        btnReset.style.color = 'var(--danger)';
+                    }
+                    if (isConnected) setConnState('online', 'SYS.ONLINE (BLE)');
+                }
+            }
+
             // Mode update
             if (d.cm !== undefined && d.cm !== currentMode) {
                 currentMode = d.cm;
@@ -854,6 +943,15 @@
             sendRawCmd(cmd + val);
         }
 
+        function resetSystemError() {
+            if (!isConnected) {
+                alert("Nicht verbunden! Bitte verbinde zuerst die Maschine.");
+                return;
+            }
+            sendRawCmd('R');
+            console.log("[BLE -> STM32] System-Reset Befehl 'R' gesendet");
+        }
+
         function togglePump() {
             let nextState = !pumpActive;
             sendRawCmd('P' + (nextState ? '1' : '0'));
@@ -906,6 +1004,36 @@
             }
         }
 
+        let tuningInputsPopulated = false;
+        function initTuningInputs(d) {
+            if (tuningInputsPopulated) return;
+            if (d.kHp !== undefined && document.getElementById('pid-p')) {
+                document.getElementById('pid-p').value = d.kHp.toFixed(1);
+                document.getElementById('pid-i').value = d.kHi.toFixed(1);
+                document.getElementById('pid-d').value = d.kHd.toFixed(1);
+                document.getElementById('pid-f').value = d.kHf ? d.kHf.toFixed(2) : '1.10';
+            }
+            if (d.kBp !== undefined && document.getElementById('pid-brew-p')) {
+                document.getElementById('pid-brew-p').value = d.kBp.toFixed(1);
+                document.getElementById('pid-brew-i').value = d.kBi.toFixed(1);
+                document.getElementById('pid-brew-d').value = d.kBd.toFixed(1);
+                document.getElementById('pid-brew-max').value = (d.bMp !== undefined) ? d.bMp.toFixed(0) : '70';
+            }
+            if (d.kPp !== undefined && document.getElementById('pump-p-kp')) {
+                document.getElementById('pump-p-kp').value = d.kPp.toFixed(1);
+                document.getElementById('pump-p-ki').value = d.kPi.toFixed(1);
+                document.getElementById('pump-f-kp').value = d.kFp.toFixed(1);
+                document.getElementById('pump-f-ki').value = d.kFi.toFixed(1);
+            }
+            if (d.sMinP !== undefined && document.getElementById('tune-sMinP')) {
+                document.getElementById('tune-sMinP').value = d.sMinP.toFixed(0);
+                document.getElementById('tune-sPp').value = d.sPp;
+                document.getElementById('tune-sPon').value = d.sPon;
+                document.getElementById('tune-sPoff').value = d.sPoff;
+            }
+            tuningInputsPopulated = true;
+        }
+
         function saveCoffeePID() {
             let p = document.getElementById('pid-p').value;
             let i = document.getElementById('pid-i').value;
@@ -915,24 +1043,44 @@
             setTimeout(() => sendRawCmd('KHi ' + i), 50);
             setTimeout(() => sendRawCmd('KHd ' + d), 100);
             setTimeout(() => sendRawCmd('KHf ' + f), 150);
-            alert("Kaffee-PID gesendet!");
+            alert("Dickfilm-PID gesendet: Kp=" + p + " Ki=" + i + " Kd=" + d + " FF=" + f);
+        }
+
+        function saveBrewPID() {
+            let p = document.getElementById('pid-brew-p').value;
+            let i = document.getElementById('pid-brew-i').value;
+            let d = document.getElementById('pid-brew-d').value;
+            let m = document.getElementById('pid-brew-max').value;
+            sendRawCmd('KBp ' + p);
+            setTimeout(() => sendRawCmd('KBi ' + i), 40);
+            setTimeout(() => sendRawCmd('KBd ' + d), 80);
+            setTimeout(() => sendRawCmd('KBm ' + m), 120);
+            alert("Brühgruppen-PID gesendet: Kp=" + p + ", Ki=" + i + ", Kd=" + d + ", Max=" + m + "%");
+        }
+
+        function savePumpPID() {
+            let pkp = document.getElementById('pump-p-kp').value;
+            let pki = document.getElementById('pump-p-ki').value;
+            let fkp = document.getElementById('pump-f-kp').value;
+            let fki = document.getElementById('pump-f-ki').value;
+            sendRawCmd('KPp ' + pkp);
+            setTimeout(() => sendRawCmd('KPi ' + pki), 40);
+            setTimeout(() => sendRawCmd('KFp ' + fkp), 80);
+            setTimeout(() => sendRawCmd('KFi ' + fki), 120);
+            alert("Pumpen-Regelung gesendet: Druck Kp=" + pkp + " Ki=" + pki + " | Flow Kp=" + fkp + " Ki=" + fki);
         }
 
         function saveSteamParams() {
-            let sTurbo = document.getElementById('tune-sTurbo').value;
-            let sTtemp = document.getElementById('tune-sTtemp').value;
             let sMinP = document.getElementById('tune-sMinP').value;
             let sPp = document.getElementById('tune-sPp').value;
             let sPon = document.getElementById('tune-sPon').value;
             let sPoff = document.getElementById('tune-sPoff').value;
 
-            sendRawCmd('KSe ' + sTurbo);
-            setTimeout(() => sendRawCmd('KSb ' + sTtemp), 40);
-            setTimeout(() => sendRawCmd('KSm ' + sMinP), 80);
-            setTimeout(() => sendRawCmd('KSp ' + sPp), 120);
-            setTimeout(() => sendRawCmd('KSo ' + sPon), 160);
-            setTimeout(() => sendRawCmd('KSf ' + sPoff), 200);
-            alert(`Dampf-Parameter gesendet: Turbo ${sTurbo === '1' ? 'Ein' : 'Aus'} (${sTtemp}°C), Heizung ${sMinP}%, Puls ${sPp}%, An ${sPon}ms, Aus ${sPoff}ms`);
+            sendRawCmd('KSm ' + sMinP);
+            setTimeout(() => sendRawCmd('KSp ' + sPp), 40);
+            setTimeout(() => sendRawCmd('KSo ' + sPon), 80);
+            setTimeout(() => sendRawCmd('KSf ' + sPoff), 120);
+            alert(`Dampf-Parameter gesendet: Heizung ${sMinP}%, Puls ${sPp}%, An ${sPon}ms, Aus ${sPoff}ms`);
         }
 
         // =====================================================================
